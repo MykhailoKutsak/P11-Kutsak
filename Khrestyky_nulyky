@@ -1,0 +1,231 @@
+import java.util.Scanner;
+import java.util.Random;
+
+public class Khrestyky_nulyky {
+
+    // Загалом налаштування
+    public static String COL = "\u001B[37m"; // Білий за замовчуванням
+    public static final String RESET = "\u001B[0m";
+    public static final Scanner sc = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        boolean run = true;
+        while (run) {
+            // Головне меню. Тут ми застовуємо COL до кожного рядка, аби усе було кольоровим
+            System.out.println(COL + "\nГОЛОВНЕ МЕНЮ");
+            System.out.println(COL + "1 - Почати гру");
+            System.out.println(COL + "2 - Вихід");
+            System.out.println(COL + "3 - Теми (Колір)");
+
+            // Скидаємо колір (RESET) перед введенням
+            System.out.print(RESET + "Ваш вибір: ");
+
+            String op = sc.next();
+
+try {
+                switch (op) {
+                    case "1":
+                        Game game = new Game();
+                        game.start();
+                        break;
+                    case "2":
+                        System.out.println("Гру завершено");
+                        run = false;
+                        break;
+                    case "3":
+                        themeMenu();
+                        break;
+                    default:
+                        throw new InvalidMenuOptionException("Недоступна опція, обирайте зі списку (1, 2 або 3)!");
+                }
+            } catch (InvalidMenuOptionException e) {
+                System.out.println("\nПомилка меню " + e.getMessage());
+            }
+
+    // Меню зміни кольору
+  public static void themeMenu() throws InvalidMenuOptionException {
+        System.out.println(COL + "\nОБЕРІТЬ КОЛІР");
+        System.out.println(COL + "1. Білий");
+        System.out.println(COL + "2. Зелений");
+        System.out.println(COL + "3. Жовтий");
+        System.out.print(RESET + "Вибір: ");
+
+   String c = sc.next();
+        if (c.equals("1")) COL = "\u001B[37m";
+        else if (c.equals("2")) COL = "\u001B[32m";
+        else if (c.equals("3")) COL = "\u001B[33m";
+        else {
+            throw new InvalidMenuOptionException("Недоступний вибір кольору");
+        }
+
+        System.out.println(COL + "Зміни застосовано" + RESET);
+    }
+}
+
+// Власне сама гра
+class Game {
+    private Board board;
+    private String player1;
+    private String player2;
+    private boolean isVsComputer;
+    private Random rnd = new Random();
+
+    public void start() {
+        board = new Board(); // Створюємо нове ігрове поле
+        setupPlayers();      // Задаємо імена гравцям
+
+        boolean play = true;
+        char symbol = 'X';
+        String currentPlayer = player1;
+        int moves = 0;
+
+        while (play) {
+            board.print();
+
+            if (isVsComputer && symbol == 'O') {
+                doComputerMove();
+            } else {
+                doPlayerMove(currentPlayer, symbol);
+            }
+
+            moves++;
+
+            // Перевірка перемоги
+            if (board.checkWin(symbol)) {
+                board.print();
+                System.out.println(Khrestyky_nulyky.COL + "Переміг " + currentPlayer + Khrestyky_nulyky.RESET);
+                play = false;
+            } else if (moves == 9) {
+                board.print();
+                System.out.println(Khrestyky_nulyky.COL + "Нічия" + Khrestyky_nulyky.RESET);
+                play = false;
+            } else {
+                // Зміна ходу
+                symbol = (symbol == 'X') ? 'O' : 'X';
+                currentPlayer = (symbol == 'X') ? player1 : player2;
+            }
+        }
+    }
+
+    private void setupPlayers() {
+        System.out.println(Khrestyky_nulyky.COL + "1 - Два гравці");
+        System.out.println(Khrestyky_nulyky.COL + "2 - Гравецб і комп'ютер");
+        System.out.print(Khrestyky_nulyky.RESET + "Ваш вибір: ");
+
+        String choice = Khrestyky_nulyky.sc.next();
+        isVsComputer = choice.equals("2");
+
+        System.out.print("Ім'я 1 (X): ");
+        Khrestyky_nulyky.sc.nextLine(); // Очистка буферу
+        String name = Khrestyky_nulyky.sc.nextLine();
+        player1 = name.isEmpty() ? "User 1" : name;
+
+        if (isVsComputer) {
+            player2 = "Computer";
+        } else {
+            System.out.print("Ім'я 2 (O): ");
+            name = Khrestyky_nulyky.sc.nextLine();
+            player2 = name.isEmpty() ? "User 2" : name;
+        }
+    }
+
+   private void doPlayerMove(String name, char symbol) {
+        boolean valid = false;
+        while (!valid) {
+            System.out.print(Khrestyky_nulyky.COL + name + " (" + symbol + "), хід (напр. A1): " + Khrestyky_nulyky.RESET);
+            String input = Khrestyky_nulyky.sc.next().toUpperCase();
+
+            try {
+                if (input.length() != 2) {
+                    throw new InvalidInputFormatException("Хід має складатися з літери та цифри (напр. A1)!");
+                }
+
+                char letter = input.charAt(0);
+                char digit = input.charAt(1);
+
+                if (letter < 'A' || letter > 'C' || digit < '1' || digit > '3') {
+                    throw new OutOfBoundsException("Координати знаходяться поза полем, вкажіть букви A-C та цифри 1-3.");
+                }
+
+                int col = letter - 'A'; 
+                int row = digit - '1'; 
+
+                board.makeMove(row, col, symbol);
+                valid = true; 
+
+            } catch (InvalidInputFormatException e) {
+                System.out.println("Помилка формату " + e.getMessage());
+            } catch (OutOfBoundsException e) {
+                System.out.println("Помилка координат" + e.getMessage());
+            } catch (CellOccupiedException e) {
+                System.out.println("Помилка клітинки" + e.getMessage());
+            }
+        }
+    }
+
+    private void doComputerMove() {
+        System.out.println(Khrestyky_nulyky.COL + "Комп'ютер думає..." + Khrestyky_nulyky.RESET);
+        try { Thread.sleep(700); } catch (Exception e) {} //у нас всё равно норм ии нету, давайте он хоть немного типу подумает чтобы нормально выглядело
+
+        int r, c;
+        do {
+            r = rnd.nextInt(3);
+            c = rnd.nextInt(3);
+        } while (!board.isCellFree(r, c));
+
+        board.makeMove(r, c, 'O');
+    }
+}
+
+// Сама дошка
+class Board {
+    private char[][] grid;
+
+    public Board() {
+        grid = new char[3][3];
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                grid[i][j] = ' ';
+            }
+        }
+    }
+
+    public void print() {
+        // Використовуємо колір з класу Khrestyky_nulyky
+        System.out.println(Khrestyky_nulyky.COL);
+        System.out.println("   A   B   C");
+        System.out.println("  ╔═══╦═══╦═══╗"); //А де ти ці символи для псевдографіки знайшов?
+        for (int i = 0; i < 3; i++) {
+            System.out.print((i + 1) + " ║ " + grid[i][0] + " ║ " + grid[i][1] + " ║ " + grid[i][2] + " ║");
+            System.out.println();
+            if (i < 2) System.out.println("  ╠═══╬═══╬═══╣");
+        }
+        System.out.println("  ╚═══╩═══╩═══╝" + Khrestyky_nulyky.RESET);
+    }
+
+   public void makeMove(int row, int col, char symbol) throws OutOfBoundsException, CellOccupiedException {
+        if (row < 0 || row >= 3 || col < 0 || col >= 3) {
+            throw new OutOfBoundsException("Індекси масиву вийшли за межі");
+        }
+        if (grid[row][col] != ' ') {
+            throw new CellOccupiedException("Ця клітинка зайнята");
+        }
+        grid[row][col] = symbol;
+    }
+
+    public boolean isCellFree(int row, int col) {
+        return grid[row][col] == ' ';
+    }
+
+    public boolean checkWin(char s) {
+        // Перевірка рядків та стовпців
+        for (int i = 0; i < 3; i++) {
+            if ((grid[i][0] == s && grid[i][1] == s && grid[i][2] == s) ||
+                    (grid[0][i] == s && grid[1][i] == s && grid[2][i] == s)) return true;
+        }
+        // Перевірка діагоналей
+        if ((grid[0][0] == s && grid[1][1] == s && grid[2][2] == s) ||
+                (grid[0][2] == s && grid[1][1] == s && grid[2][0] == s)) return true;
+
+        return false;
+    }
